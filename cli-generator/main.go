@@ -127,7 +127,7 @@ func main() {
 	fmt.Println("|  Sleeve is a novel way of embedding a quantum secure key   |")
 	fmt.Println("|  in the generation of curve based, non quantum secure keys |")
 	fmt.Println("|                                                            |")
-	fmt.Println("|  Find out more about Sleeve at: xx.network/sleeve          |")
+	fmt.Println("|  Find out more about Sleeve at: github.com/xx-labs/sleeve  |")
 	fmt.Println("|------------------------------------------------------------|")
 	fmt.Println()
 	fmt.Println()
@@ -218,7 +218,7 @@ func main() {
 	WaitForEnter()
 
 	fmt.Println("|------------------------------------------------------------|")
-	fmt.Println("|  Step 4.             xx network wallet address             |")
+	fmt.Println("|  Step 4.           " + xxnet + " wallet address               |")
 	fmt.Println("|------------------------------------------------------------|")
 	fmt.Println()
 	fmt.Println()
