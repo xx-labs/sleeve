@@ -5,8 +5,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"github.com/fatih/color"
-	"github.com/vedhavyas/go-subkey"
-	sr "github.com/vedhavyas/go-subkey/sr25519"
 	"github.com/xx-labs/sleeve/wallet"
 	"golang.org/x/term"
 	"os"
@@ -15,8 +13,6 @@ import (
 	"strings"
 	"syscall"
 )
-
-const PraxxisTestnetNetworkID = 42
 
 type SleeveJson struct {
 	Sleeve     string  `json:"Sleeve"`
@@ -32,16 +28,10 @@ func GenerateWallet(passphrase string) (SleeveJson, error) {
 		return SleeveJson{}, err
 	}
 
-	// 2. Create xxdot wallet
-	scheme := sr.Scheme{}
-	xxWallet, err := subkey.DeriveKeyPair(scheme, sleeve.GetOutputMnemonic())
-	if err != nil {
-		return SleeveJson{}, err
-	}
-
-	addr, err := xxWallet.SS58Address(PraxxisTestnetNetworkID)
-	if err != nil {
-		return SleeveJson{}, err
+	// 2. Get ProtoNet Address
+	addr := wallet.ProtoNetAddressFromMnemonic(sleeve.GetOutputMnemonic())
+	if addr == "" {
+		return SleeveJson{}, nil
 	}
 
 	// 3. return wallet JSON
