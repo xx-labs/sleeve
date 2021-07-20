@@ -7,6 +7,8 @@
 package wots
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"github.com/xx-labs/sleeve/hasher"
 )
@@ -59,6 +61,14 @@ type Params struct {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Errors
+var (
+	errWrongSigLen = errors.New("signature has incorrect length")
+	errInvalidOutputSlice = errors.New("output slice is invalid: should have length 0 and capacity of 32 bytes")
+	errWrongPubKeySize = errors.New("public key has incorrect length: should be 32 bytes")
+)
+
+///////////////////////////////////////////////////////////////////////
 // Constructor
 
 // Creates WOTS+ params with given values of n, m; prf and msg hashes
@@ -98,19 +108,17 @@ func (p *Params) Equal(other *Params) bool {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Implement Decoder interface
-///////////////////////////////////////////////////////////////////////
 // Decode a signature, i.e., compute the public key from the message and signature
-func (p *Params) Decode(out, msg, signature []byte) []byte {
+func (p *Params) Decode(out, msg, signature []byte) ([]byte, error) {
 	// Ensure signature has correct size
 	siglen := p.total * p.n + SeedSize
 	if len(signature) != siglen {
-		return nil
+		return nil, errWrongSigLen
 	}
 
 	// Ensure output slice is well formed
 	if len(out) != 0 || cap(out) != PKSize {
-		return nil
+		return nil, errInvalidOutputSlice
 	}
 
 	// Get public seed from first 32 bytes of the signature
@@ -118,7 +126,22 @@ func (p *Params) Decode(out, msg, signature []byte) []byte {
 	signature = signature[SeedSize:]
 
 	// Compute the public key from message and signature
-	return p.computeLadders(out, pSeed, msg, signature, nil, false)
+	return p.computeLadders(out, pSeed, msg, signature, nil, false), nil
+}
+
+///////////////////////////////////////////////////////////////////////
+// Verify a signature
+func (p *Params) Verify(msg, signature, pubkey []byte) (bool, error) {
+	// Ensure pubkey has correct size
+	if len(pubkey) != PKSize {
+		return false, errWrongPubKeySize
+	}
+	// Decode signature
+	pk := make([]byte, 0, PKSize)
+	var err error
+	pk, err = p.Decode(pk, msg, signature)
+	// Compare public key
+	return bytes.Equal(pk, pubkey), err
 }
 
 ///////////////////////////////////////////////////////////////////////

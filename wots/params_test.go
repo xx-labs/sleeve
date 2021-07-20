@@ -12,6 +12,20 @@ import (
 	"testing"
 )
 
+func getRandData(t *testing.T, size int) []byte {
+	data := make([]byte, size)
+	n, err := rand.Read(data)
+
+	if err != nil {
+		t.Fatalf("Error reading random bytes: %s", err)
+	}
+
+	if n != size {
+		t.Fatalf("Reader only gave us %d bytes, expected %d", n, size)
+	}
+	return data
+}
+
 func TestParams_NewParams(t *testing.T) {
 	// Test message size being 0
 	params := NewParams(32, 0, hasher.BLAKE3_256, hasher.BLAKE3_256)
@@ -108,75 +122,94 @@ func TestParams_Decode(t *testing.T) {
 
 	// 32 ladders + 2 checksum ladders + public seed, all of 32 bytes
 	sigLen := (32 + 2) * 32 + 32
-	// Decode a signature
-	sig := make([]byte, sigLen)
-	n, err := rand.Read(sig)
 
-	if err != nil {
-		t.Fatalf("Error reading random bytes for signature: %s", err)
-	}
+	// Get a random signature
+	sig := getRandData(t, sigLen)
 
-	if n != sigLen {
-		t.Fatalf("Reader only gave us %d bytes, expected %d", n, sigLen)
-	}
-
-	msg := make([]byte, 256)
-
-	n, err = rand.Read(msg)
-
-	if err != nil {
-		t.Fatalf("Error reading random bytes for msg: %s", err)
-	}
-
-	if n != 256 {
-		t.Fatalf("Reader only gave us %d bytes, expected 256", n)
-	}
+	// Get a random message
+	msg := getRandData(t, 256)
 
 	// Test valid decoding
 	ret := make([]byte, 0, PKSize)
-	ret = params.Decode(ret, msg, sig)
+	var err error
+	ret, err = params.Decode(ret, msg, sig)
 
-	if ret == nil {
-		t.Fatalf("Params.Decode() returned nil, but signature had correct size!")
+	if ret == nil || err != nil {
+		t.Fatalf("Params.Decode() returned (nil, error) but signature had correct size!")
 	}
 
 	// Test decoding a small signature
 	ret = ret[:0]
-	ret = params.Decode(ret, msg, sig[0:sigLen-2])
+	ret, err = params.Decode(ret, msg, sig[0:sigLen-2])
 
-	if ret != nil {
-		t.Fatalf("Params.Decode() should have returned nil for small signature. Got %v instead", ret)
+	if ret != nil || err == nil {
+		t.Fatalf("Params.Decode() should have returned (nil, error) for small signature. Got %v instead", ret)
 	}
 
 	// Test decoding a large signature
 	ret = ret[:0]
-	ret = params.Decode(ret, msg, append(msg, sig...))
+	ret, err = params.Decode(ret, msg, append(msg, sig...))
 
-	if ret != nil {
-		t.Fatalf("Params.Decode() should have returned nil for large signature. Got %v instead", ret)
+	if ret != nil || err == nil {
+		t.Fatalf("Params.Decode() should have returned (nil, error) for large signature. Got %v instead", ret)
 	}
 
 	// Test nil output slice
-	ret = params.Decode(nil, msg, sig)
+	ret, err = params.Decode(nil, msg, sig)
 
-	if ret != nil {
-		t.Fatalf("Params.Decode() should have returned nil when output slice is nil. Got %v instead", ret)
+	if ret != nil || err == nil {
+		t.Fatalf("Params.Decode() should have returned (nil, error) when output slice is nil. Got %v instead", ret)
 	}
 
 	// Test sized output slice
 	ret = make([]byte, PKSize)
-	ret = params.Decode(ret, msg, sig)
+	ret, err = params.Decode(ret, msg, sig)
 
-	if ret != nil {
-		t.Fatalf("Params.Decode() should have returned nil when output slice is not empty. Got %v instead", ret)
+	if ret != nil || err == nil {
+		t.Fatalf("Params.Decode() should have returned (nil, error) when output slice is not empty. Got %v instead", ret)
 	}
 
 	// Test wrong capacity output slice
 	ret = make([]byte, 0, PKSize-2)
-	ret = params.Decode(ret, msg, sig)
+	ret, err = params.Decode(ret, msg, sig)
 
-	if ret != nil {
-		t.Fatalf("Params.Decode() should have returned nil when output slice doesn't have enough capacity." +
+	if ret != nil || err == nil {
+		t.Fatalf("Params.Decode() should have returned (nil, error) when output slice doesn't have enough capacity." +
 			" Got %v instead", ret)
+	}
+}
+
+func TestParams_Verify(t *testing.T) {
+	params := NewParams(32, 32, hasher.BLAKE3_256, hasher.BLAKE3_256)
+
+	// 32 ladders + 2 checksum ladders + public seed, all of 32 bytes
+	sigLen := (32 + 2) * 32 + 32
+
+	// Get a random signature
+	sig := getRandData(t, sigLen)
+
+	// Get a random message
+	msg := getRandData(t, 256)
+
+	// Get a random public key
+	pk := getRandData(t, PKSize)
+
+	// Test valid arguments verify, with random public key (verification returns false)
+	valid, err := params.Verify(msg, sig, pk)
+
+	if err != nil {
+		t.Fatalf("Params.Verify() returned error when all arguments are well formed")
+	}
+
+	if valid {
+		t.Fatalf("Params.Verify() returned true for random signature and public key")
+	}
+
+	// Test invalid public key size
+	pk = getRandData(t, PKSize-4)
+	_, err = params.Verify(msg, sig, pk)
+
+	if err == nil {
+		t.Fatalf("Params.Verify() should return error when public key has incorrect size")
 	}
 }

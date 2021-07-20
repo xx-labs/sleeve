@@ -103,29 +103,20 @@ func TestEncodeParams(t *testing.T) {
 }
 
 func TestDecodeTransactionSignature(t *testing.T) {
-	key := NewKey(level0Params, rand.Reader)
+	key := NewKeyFromSeed(level0Params, getRandData(t, 32), getRandData(t, 32))
 
 	if key == nil {
 		t.Fatalf("NewKey returned nil")
 	}
 
 	// Test decoding
-	msg := make([]byte, 256)
-	n, err := rand.Read(msg)
-
-	if err != nil {
-		t.Fatalf("Error reading random bytes for msg: %s", err)
-	}
-
-	if n != 256 {
-		t.Fatalf("Reader only gave us %d bytes, expected 256", n)
-	}
+	msg := getRandData(t, 256)
 
 	sig := key.Sign(msg)
 	pk := key.ComputePK()
 
 	ret := make([]byte, 0, PKSize)
-	ret = DecodeTransactionSignature(ret, msg, sig)
+	ret, _ = DecodeTransactionSignature(ret, msg, sig)
 
 	if !bytes.Equal(ret, pk) {
 		t.Fatalf("Key.Sign + DecodeTransactionSignature are not consistent! Got: %x, expected: %x",
@@ -134,16 +125,17 @@ func TestDecodeTransactionSignature(t *testing.T) {
 
 	// Test wrong inputs
 	ret = ret[:0]
-	ret = DecodeTransactionSignature(ret, nil, sig)
+	var err error
+	ret, err = DecodeTransactionSignature(ret, nil, sig)
 
-	if ret != nil {
-		t.Fatalf("DecodeTransactionSignature() should return nil for invalid message")
+	if ret != nil || err == nil {
+		t.Fatalf("DecodeTransactionSignature() should return error for invalid message argument")
 	}
 
-	ret = DecodeTransactionSignature(ret, msg, nil)
+	ret, err = DecodeTransactionSignature(ret, msg, nil)
 
-	if ret != nil {
-		t.Fatalf("DecodeTransactionSignature() should return nil for invalid signature")
+	if ret != nil || err == nil {
+		t.Fatalf("DecodeTransactionSignature() should return error for invalid signature argument")
 	}
 
 	// Test attempting to decode a signature with consensus params
@@ -154,10 +146,10 @@ func TestDecodeTransactionSignature(t *testing.T) {
 	}
 
 	sig = key.Sign(msg)
-	ret = DecodeTransactionSignature(ret, msg, sig)
+	ret, err = DecodeTransactionSignature(ret, msg, sig)
 
-	if ret != nil {
-		t.Fatalf("DecodeTransactionSignature() should return nil if signature used consensus params")
+	if ret != nil || err == nil {
+		t.Fatalf("DecodeTransactionSignature() should return error if signature used consensus params")
 	}
 
 	// Test attempting to decode a signature with unknown params
@@ -168,9 +160,58 @@ func TestDecodeTransactionSignature(t *testing.T) {
 	}
 
 	sig = key.Sign(msg)
-	ret = DecodeTransactionSignature(ret, msg, sig)
+	ret, err = DecodeTransactionSignature(ret, msg, sig)
 
-	if ret != nil {
-		t.Fatalf("DecodeTransactionSignature() should return nil if signature used unkwown params")
+	if ret != nil || err == nil {
+		t.Fatalf("DecodeTransactionSignature() should return error if signature used unkwown params")
+	}
+}
+
+func TestVerify(t *testing.T) {
+	// Test verify a consensus signature
+	key := NewKeyFromSeed(consensusParams, getRandData(t, 32), getRandData(t, 32))
+
+	if key == nil {
+		t.Fatalf("NewKey returned nil")
+	}
+
+	msg := getRandData(t, 256)
+
+	sig := key.Sign(msg)
+	pk := key.ComputePK()
+
+	valid, _ := Verify(msg, sig, pk)
+
+	if !valid {
+		t.Fatalf("Key.Sign + Verify are not consistent!")
+	}
+
+	// Test wrong inputs
+	var err error
+	_, err = Verify(nil, sig, pk)
+
+	if err == nil {
+		t.Fatalf("Verify() should return error for invalid message argument")
+	}
+
+	_, err = Verify(msg, nil, pk)
+
+	if err == nil {
+		t.Fatalf("Verify() should return error for invalid signature argument")
+	}
+
+	// Test attempting to verify a signature with unknown params
+	key = NewKey(NewParams(32, 32, hasher.BLAKE3_256, hasher.BLAKE3_256), rand.Reader)
+
+	if key == nil {
+		t.Fatalf("NewKey returned nil")
+	}
+
+	sig = key.Sign(msg)
+	pk = key.ComputePK()
+	_, err = Verify(msg, sig, pk)
+
+	if err == nil {
+		t.Fatalf("Verify() should return error if signature used unkwown params")
 	}
 }

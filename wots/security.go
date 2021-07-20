@@ -6,7 +6,10 @@
 
 package wots
 
-import "github.com/xx-labs/sleeve/hasher"
+import (
+	"errors"
+	"github.com/xx-labs/sleeve/hasher"
+)
 
 ///////////////////////////////////////////////////////////////////////
 // LEVEL0 WOTS+ INSTANTIATION
@@ -145,9 +148,11 @@ var consensusParams = NewParams(consensusN, consensusM, consensusPrfH, consensus
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
+///////////////////////////////////////////////////////////////////////
 // Params encoding
 type ParamsEncoding uint8
 
+// Encode the different parameter sets that exist for now
 const (
 	Level0 ParamsEncoding = iota
 	Level1
@@ -160,6 +165,7 @@ const (
 	DefaultParams = Level0
 )
 
+// Get the parameter set from its encoding
 func DecodeParams(enc ParamsEncoding) *Params {
 	switch enc {
 	case Level0:
@@ -177,6 +183,7 @@ func DecodeParams(enc ParamsEncoding) *Params {
 	}
 }
 
+// Encode a parameter set
 func EncodeParams(p *Params) ParamsEncoding {
 	if level0Params.Equal(p) {
 		return Level0
@@ -197,21 +204,53 @@ func EncodeParams(p *Params) ParamsEncoding {
 	return ParamsEncodingLen
 }
 
-func DecodeTransactionSignature(out, msg, signature []byte) []byte {
+///////////////////////////////////////////////////////////////////////
+// Errors
+var (
+	errInvalidMsgOrSig = errors.New("message or signature is empty")
+	errConsensusParams = errors.New("can't use consensus params for transaction signatures")
+	errDecodingParams = errors.New("couldn't decode WOTS+ params")
+)
+
+// Decode a transaction signature
+// NOTE: Consensus parameters are NOT allowed for transaction signing
+func DecodeTransactionSignature(out, msg, signature []byte) ([]byte, error) {
+	// 1. Decode params
+	params, err := decodeParams(msg, signature, false)
+	if err != nil {
+		return nil, err
+	}
+	// 2. Decode signature
+	return params.Decode(out, msg, signature[1:])
+}
+
+// Verify a signature
+func Verify(msg, signature, pubkey []byte) (bool, error) {
+	// 1. Decode params
+	params, err := decodeParams(msg, signature, true)
+	if err != nil {
+		return false, err
+	}
+	// 2. Verify signature
+	return params.Verify(msg, signature[1:], pubkey)
+}
+
+// Decode params
+// If consensus is not allowed, return an error if the consensus parameter set is used
+func decodeParams(msg, signature []byte, consensusAllowed bool) (*Params, error) {
 	// 1. Return if msg or signature is empty
 	if len(msg) == 0 || len(signature) == 0 {
-		return nil
+		return nil, errInvalidMsgOrSig
 	}
 	// 2. Don't allow consensus params
 	encoding := ParamsEncoding(signature[0])
-	if encoding == Consensus {
-		return nil
+	if encoding == Consensus && !consensusAllowed {
+		return nil, errConsensusParams
 	}
 	// 3. Decode params
 	params := DecodeParams(encoding)
 	if params == nil {
-		return nil
+		return nil, errDecodingParams
 	}
-	// 4. Use correct params to decode signature
-	return params.Decode(out, msg, signature[1:])
+	return params, nil
 }

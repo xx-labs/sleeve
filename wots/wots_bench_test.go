@@ -39,7 +39,7 @@ func benchmarkDecodeParams(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		out := make([]byte, 0, PKSize)
 		for pb.Next() {
-			out = p.Decode(out, t.msg, sig[1:])
+			out, _ = p.Decode(out, t.msg, sig[1:])
 			out = out[:0]
 		}
 	})

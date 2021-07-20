@@ -81,27 +81,9 @@ func TestNewKey(t *testing.T) {
 func TestNewKeyFromSeed(t *testing.T) {
 	params := NewParams(32, 32, hasher.BLAKE3_256, hasher.BLAKE3_256)
 	// Test NewKeyFromSeed returns nil when seeds have wrong size
-	seed := make([]byte, 30)
-	n, err := rand.Read(seed)
+	seed := getRandData(t, 30)
 
-	if err != nil {
-		t.Fatalf("Error reading random bytes for seed: %s", err)
-	}
-
-	if n != 30 {
-		t.Fatalf("Reader only gave us %d bytes, expected 30", n)
-	}
-
-	pSeed := make([]byte, 32)
-	n, err = rand.Read(pSeed)
-
-	if err != nil {
-		t.Fatalf("Error reading random bytes for public seed: %s", err)
-	}
-
-	if n != 32 {
-		t.Fatalf("Reader only gave us %d bytes, expected 32", n)
-	}
+	pSeed := getRandData(t, 32)
 
 	key := NewKeyFromSeed(params, seed, pSeed)
 
@@ -225,16 +207,7 @@ func TestKey_Sign(t *testing.T) {
 	}
 
 	// Test Signing without generating does not keep data in memory
-	msg := make([]byte, 256)
-	n, err := rand.Read(msg)
-
-	if err != nil {
-		t.Fatalf("Error reading random bytes for msg: %s", err)
-	}
-
-	if n != 256 {
-		t.Fatalf("Reader only gave us %d bytes, expected 256", n)
-	}
+	msg := getRandData(t, 256)
 
 	sig := key.Sign(msg)
 
@@ -278,29 +251,18 @@ func TestKey_Sign_Consistency(t *testing.T) {
 		t.Fatalf("NewKey returned nil")
 	}
 
-	// Test signing + decoding
-	msg := make([]byte, 256)
-	n, err := rand.Read(msg)
-
-	if err != nil {
-		t.Fatalf("Error reading random bytes for msg: %s", err)
-	}
-
-	if n != 256 {
-		t.Fatalf("Reader only gave us %d bytes, expected 256", n)
-	}
+	// Test signing + verify
+	msg := getRandData(t, 256)
 
 	key.Generate()
 
 	sig := key.Sign(msg)
 	pk := key.GetPK()
 
-	ret := make([]byte, 0, PKSize)
-	ret = params.Decode(ret, msg, sig[1:])
+	valid, _ := params.Verify(msg, sig[1:], pk)
 
-	if !bytes.Equal(ret, pk) {
-		t.Fatalf("Key.Sign + Params.Decode are not consistent! Expected PK: %v, Got: %v",
-			pk, ret)
+	if !valid {
+		t.Fatalf("Key.Sign + Params.Verify are not consistent!")
 	}
 }
 
@@ -563,13 +525,11 @@ func testConsistencyParams(params *Params, t *testing.T) {
 		}
 	}
 
-	// Check decode consistency
-	ret := make([]byte, 0, PKSize)
-	ret = params.Decode(ret, msg, sigNoEncode)
+	// Check consistency
+	valid, _ := params.Verify(msg, sigNoEncode, pk)
 
-	if !bytes.Equal(ret, pk) {
-		t.Fatalf("Key.Sign + Params.Decode are not consistent! Expected PK: %v, Got: %v",
-			pk, ret)
+	if !valid {
+		t.Fatalf("Key.Sign + Params.Verify are not consistent!")
 	}
 }
 
