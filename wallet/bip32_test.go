@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
-	"github.com/decred/base58"
 	"math/big"
 	"testing"
 )
@@ -114,15 +113,16 @@ func Test_validatePrivateKey(t *testing.T) {
 
 // Test Vectors
 // https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
+// Base58 vectors were decoded into hex strings to avoid unnecessary dependency on a base58 library
 const (
 	vectorOneSeed       = "000102030405060708090a0b0c0d0e0f"
-	vectorOneMaster     = "xprv9s21ZrQH143K3QTDL4LXw2F7HEK3wJUD2nW2nRk4stbPy6cq3jPPqjiChkVvvNKmPGJxWUtg6LnF5kejMRNNU3TGtRBeJgk33yuGBxrMPHi"
-	vectorOneHardZero   = "xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7XnxHrnYeSvkzY7d2bhkJ7"
+	vectorOneMaster     = "0488ade4000000000000000000873dff81c02f525623fd1fe5167eac3a55a049de3d314bb42ee227ffed37d50800e8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35e77e9d71"
+	vectorOneHardZero   = "0488ade4013442193e8000000047fdacbd0f1097043b78c63c20c34ef4ed9a111d980047ad16282c7ae623614100edb2e14f9ee77d26dd93b4ecede8d16ed408ce149b6cd80b0715a2d911a0afea0a794dec"
 	vectorTwoSeed       = "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542"
-	vectorTwoMaster     = "xprv9s21ZrQH143K31xYSDQpPDxsXRTUcvj2iNHm5NUtrGiGG5e2DtALGdso3pGz6ssrdK4PFmM8NSpSBHNqPqm55Qn3LqFtT2emdEXVYsCzC2U"
+	vectorTwoMaster     = "0488ade400000000000000000060499f801b896d83179a4374aeb7822aaeaceaa0db1f85ee3e904c4defbd9689004b03d6fc340455b363f51020ad3ecca4f0850280cf436c70c727923f6db46c3e61e16479"
 	vectorThreeSeed     = "4b381541583be4423346c643850da4b320e46a87ae3d2a4e6da11eba819cd4acba45d239319ac14f863b8d5ab5a0d0c64d2e8a1e7d1457df2e5a3c51c73235be"
-	vectorThreeMaster   = "xprv9s21ZrQH143K25QhxbucbDDuQ4naNntJRi4KUfWT7xo4EKsHt2QJDu7KXp1A3u7Bi1j8ph3EGsZ9Xvz9dGuVrtHHs7pXeTzjuxBrCmmhgC6"
-	vectorThreeHardZero = "xprv9uPDJpEQgRQfDcW7BkF7eTya6RPxXeJCqCJGHuCJ4GiRVLzkTXBAJMu2qaMWPrS7AANYqdq6vcBcBUdJCVVFceUvJFjaPdGZ2y9WACViL4L"
+	vectorThreeMaster   = "0488ade400000000000000000001d28a3e53cffa419ec122c968b3259e16b65076495494d97cae10bbfec3c36f0000ddb80b067e0d4993197fe10f2657a844a384589847602d56f0c629c81aae3233c0c6bf"
+	vectorThreeHardZero = "0488ade40141d63b5080000000e5fea12a97b927fc9dc3d2cb0d1ea1cf50aa5a1fdc1f933e8906bb38df3377bd00491f7a2eebc7b57028e0d3faa0acda02e75c33b03c48fb288c41e2ea44e1daef7332bb35"
 )
 
 // Extract chain code and private key from test vector
@@ -136,9 +136,9 @@ const (
 	chainCodeStart = 13
 	privKeyStart = chainCodeStart + keySize + 1
 )
-func extractNode(extendedBase58Vector string) *Node {
-	decoded := base58.Decode(extendedBase58Vector)
-	if len(decoded) == 0 {
+func extractNode(testVectorHex string) *Node {
+	decoded, err := hex.DecodeString(testVectorHex)
+	if len(decoded) == 0 || err != nil {
 		panic("couldn't decode test vector")
 	}
 	return &Node{
