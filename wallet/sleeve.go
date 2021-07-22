@@ -7,7 +7,6 @@
 package wallet
 
 import (
-	"encoding/base64"
 	"errors"
 	"github.com/tyler-smith/go-bip39"
 	"github.com/xx-labs/sleeve/hasher"
@@ -44,7 +43,7 @@ const MnemonicWords = 24
 	The private key and chain code are used, respectively, as the
 	secret and public seeds in WOTS+ generation. After the WOTS+ key
 	is generated, we save the quantum secure public key (PK).
-	This public key will be used in as the Wallet address when full
+	This public key will be used as the Wallet address when full
 	quantum secure capabilities are implemented in the future.
 
 	The private key is also used to derive a "sleeve secret key".
@@ -64,8 +63,6 @@ type Sleeve struct {
 	// Sleeve mnemonic: used to recover a Sleeve wallet
 	// User must store this safely for future use
 	mnemonic  string
-	// Quantum secure xx network wallet address (for future use)
-	xxAddress string
 	// Output mnemonic: used to generate/recover any non quantum secure wallets
 	// User must store this safely, but in case of loss, it can be
 	// regenerated from the Sleeve mnemonic
@@ -128,18 +125,12 @@ func NewSleeveFromMnemonic(mnemonic, passphrase string) (*Sleeve, error) {
 ///////////////////////////////////////////////////////////////////////
 // GETTERS
 
-// Get the Sleeve's mnemonic
+// Get the Sleeve's quantum secure mnemonic
 func (s *Sleeve) GetMnemonic() string {
 	return s.mnemonic
 }
 
-// Get the quantum secure xx network wallet address
-// NOTE: For future use only
-func (s *Sleeve) GetXXAddress() string {
-	return s.xxAddress
-}
-
-// Get the Sleeve's output mnemonic
+// Get the Sleeve's standard mnemonic (output)
 func (s *Sleeve) GetOutputMnemonic() string {
 	return s.output
 }
@@ -165,9 +156,8 @@ func generateSleeve(mnemonic, passphrase string) (*Sleeve, error) {
 	// 3. Generate WOTS+ key from seed and public seed
 	wotsKey := wots.NewKeyFromSeed(wotsParams, node.Key, node.Code)
 
-	// 4. Get WOTS+ Pubic Key and encode xx-address
+	// 4. Get WOTS+ Pubic Key
 	pk := wotsKey.ComputePK()
-	xxAddress := "xx-" + base64.StdEncoding.EncodeToString(pk)
 
 	// 5. Derive Sleeve secret key and output entropy
 	secretKey := hasher.SHA3_256.Hash(append([]byte("xx network sleeve"), node.Key...))
@@ -179,7 +169,6 @@ func generateSleeve(mnemonic, passphrase string) (*Sleeve, error) {
 	// 7. Create sleeve
 	s := &Sleeve{
 		mnemonic:  mnemonic,
-		xxAddress: xxAddress,
 		output:    outMnem,
 	}
 	return s, nil

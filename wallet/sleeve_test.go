@@ -8,7 +8,6 @@ package wallet
 
 import (
 	"crypto/rand"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"github.com/tyler-smith/go-bip39"
@@ -122,10 +121,6 @@ func TestSleeve_Getters(t *testing.T) {
 		t.Fatalf("GetMnemonic() returned empty string after Sleeve generation")
 	}
 
-	if sleeve.GetXXAddress() == "" {
-		t.Fatalf("GetXXAddress() returned empty string after Sleeve generation")
-	}
-
 	if sleeve.GetOutputMnemonic() == "" {
 		t.Fatalf("GetOutputMnemonic() returned empty string after Sleeve generation")
 	}
@@ -152,13 +147,6 @@ func TestSleeve_Consistency(t *testing.T) {
 	n, _ := ComputeNode(seed, []uint32{0x8000002C, 0x800007A3, 0x80000000, 0x80000000, 0x80000000})
 	wotsKey := wots.NewKeyFromSeed(wots.DecodeParams(wots.DefaultParams), n.Key, n.Code)
 	pk := wotsKey.ComputePK()
-	xxAddr := "xx-" + base64.StdEncoding.EncodeToString(pk)
-
-	// Compare WOTS+ address
-	if sleeve.GetXXAddress() != xxAddr {
-		t.Fatalf("Consistency violation! GetXXAddress() returned wrong xx address. Got %s, expected %s",
-			sleeve.GetXXAddress(), xxAddr)
-	}
 
 	key := hasher.SHA3_256.Hash(append([]byte("xx network sleeve"), n.Key...))
 	outEnt := hasher.SHA3_256.Hash(append(key, pk...))

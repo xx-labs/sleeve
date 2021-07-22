@@ -6,24 +6,21 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/xx-labs/sleeve/wallet"
-	"golang.org/x/term"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
-	"syscall"
 )
 
 type SleeveJson struct {
 	Sleeve     string  `json:"Sleeve"`
-	XXAddress  string  `json:"XXAddress"`
 	Address    string  `json:"Address"`
 	Mnemonic   string  `json:"Mnemonic"`
 }
 
-func GenerateWallet(passphrase string) (SleeveJson, error) {
+func GenerateWallet() (SleeveJson, error) {
 	// 1. Generate sleeve wallet
-	sleeve, err := wallet.NewSleeve(rand.Reader, passphrase)
+	sleeve, err := wallet.NewSleeve(rand.Reader, "")
 	if err != nil {
 		return SleeveJson{}, err
 	}
@@ -37,7 +34,6 @@ func GenerateWallet(passphrase string) (SleeveJson, error) {
 	// 3. return wallet JSON
 	return SleeveJson{
 		Sleeve:    sleeve.GetMnemonic(),
-		XXAddress: sleeve.GetXXAddress(),
 		Address:   addr,
 		Mnemonic:  sleeve.GetOutputMnemonic(),
 	}, nil
@@ -70,29 +66,6 @@ func WaitForEnterNoClear() {
 	_, _ = buf.ReadBytes('\n')
 	fmt.Println()
 	fmt.Println()
-}
-
-func ReadPassphrase() string {
-	fmt.Println()
-	fmt.Println("   Enter the passphrase (empty for no passphrase)")
-	passphrase, err := term.ReadPassword(int(syscall.Stdin))
-	if err != nil {
-		panic("Error reading password: " + err.Error())
-	}
-	fmt.Println("   Repeat the passphrase")
-	repeat, err := term.ReadPassword(int(syscall.Stdin))
-	if err != nil {
-		panic("Error reading password: " + err.Error())
-	}
-	if string(passphrase) != string(repeat) {
-		fmt.Println("   Passphrase doesn't match!")
-		WaitForEnterNoClear()
-		os.Exit(1)
-	}
-	fmt.Println()
-	fmt.Println("   Your passphrase is:  " + string(passphrase))
-	fmt.Println()
-	return string(passphrase)
 }
 
 func MnemPrint(mnemonic string) {
@@ -135,23 +108,7 @@ func main() {
 	WaitForEnter()
 
 	fmt.Println("|------------------------------------------------------------|")
-	fmt.Println("|  Step 1.   Choose a Sleeve passphrase (THIS IS OPTIONAL)   |")
-	fmt.Println("|------------------------------------------------------------|")
-	fmt.Println()
-	fmt.Println()
-	color.Set(color.FgRed)
-	fmt.Println("|------------------------------------------------------------|")
-	fmt.Println("|  WARNING: You MUST ensure you remember the passphrase for  |")
-	fmt.Println("|  future use of the quantum secure wallet in xx network!!!  |")
-	fmt.Println("|------------------------------------------------------------|")
-	color.Unset()
-	fmt.Println()
-	fmt.Println()
-	passphrase := ReadPassphrase()
-	WaitForEnter()
-
-	fmt.Println("|------------------------------------------------------------|")
-	fmt.Println("|  Step 2.             Sleeve wallet generation              |")
+	fmt.Println("|  Step 1.             Sleeve wallet generation              |")
 	fmt.Println("|------------------------------------------------------------|")
 	fmt.Println()
 	fmt.Println()
@@ -164,7 +121,7 @@ func main() {
 	fmt.Println()
 	WaitForEnterNoClear()
 
-	sleeve, err := GenerateWallet(passphrase)
+	sleeve, err := GenerateWallet()
 	if err != nil {
 		panic("Error generating Sleeve wallet: " + err.Error())
 	}
@@ -187,7 +144,7 @@ func main() {
 	WaitForEnter()
 
 	fmt.Println("|------------------------------------------------------------|")
-	fmt.Println("|  Step 3.       Non quantum secure wallet generation        |")
+	fmt.Println("|  Step 2.       Non quantum secure wallet generation        |")
 	fmt.Println("|------------------------------------------------------------|")
 	fmt.Println()
 	fmt.Println()
@@ -208,7 +165,7 @@ func main() {
 	WaitForEnter()
 
 	fmt.Println("|------------------------------------------------------------|")
-	fmt.Println("|  Step 4.           " + xxnet + " wallet address               |")
+	fmt.Println("|  Step 3.           " + xxnet + " wallet address               |")
 	fmt.Println("|------------------------------------------------------------|")
 	fmt.Println()
 	fmt.Println()
