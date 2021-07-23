@@ -31,3 +31,5 @@ sleeve secret key and WOTS+ public key together. The resulting
 hash value is then encoded using BIP39, providing the output
 mnemonic, which can be used to generate non quantum secure keys
 on any blockchain platform.
+
+The academic paper for Sleeve can be found [here](https://eprint.iacr.org/2021/872.pdf)
