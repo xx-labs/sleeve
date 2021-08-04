@@ -1,0 +1,50 @@
+// Dolev-Yao Attacker Model
+attacker [active]
+
+// ************************* DEFINITION OF SYSTEM ENTITIES ************************* 
+
+principal Verifier[
+]
+
+principal Signer[
+    
+    generates s0, s1, k
+
+    generates msg
+
+    pk0 = HASH(s0)
+    pk1 = HASH(s1)
+
+    x = HASH(CONCAT(pk0, pk1), k)
+
+    pk = G^x
+
+    leaks pk0, pk1
+
+    signature = SIGN(x, msg)
+]
+
+Signer -> Verifier: msg, signature, [pk]
+
+// Verifier checks whether or not the (EC)DSA digital signature is valid.
+principal Verifier[
+
+    m = SIGNVERIF(pk, msg, signature)
+
+    _ = ASSERT(m, msg)
+]
+
+// The (EC)DSA secret key (i.e., 'x') is compromised, thus simulating a break of the ECDLP
+principal Signer[
+    leaks x
+]
+
+
+// Given this compromise we want to know if the adversary is able to obtain any of the secret key values of the hash-based scheme, or the hash function key.  We therefore query for the confidentiality of all 3 of these values.
+
+// ************************* PROTOCOL QUERIES *************************
+queries[
+	confidentiality? k
+	confidentiality? s0
+	confidentiality? s1
+]
