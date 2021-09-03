@@ -114,7 +114,7 @@ func NewSleeveFromMnemonic(mnemonic, passphrase string) (*Sleeve, error) {
 	}
 
 	// 2. Generate sleeve (internally validates mnemonic)
-	sl, err := generateSleeve(mnemonic, passphrase)
+	sl, err := generateSleeveFromMnemonic(mnemonic, passphrase)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (s *Sleeve) GetOutputMnemonic() string {
 
 // Generate the sleeve according to the generation spec
 // (diagram found in the docs folder)
-func generateSleeve(mnemonic, passphrase string) (*Sleeve, error) {
+func generateSleeveFromMnemonic(mnemonic, passphrase string) (*Sleeve, error) {
 	// 1. Generate seed from mnemonic (validates the mnemonic)
 	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, passphrase)
 	if err != nil {
@@ -153,23 +153,32 @@ func generateSleeve(mnemonic, passphrase string) (*Sleeve, error) {
 		return nil, err
 	}
 
-	// 3. Generate WOTS+ key from seed and public seed
-	wotsKey := wots.NewKeyFromSeed(wotsParams, node.Key, node.Code)
+	// 3. Generate sleeve
+	out := generateSleeve(node.Key, node.Code)
 
-	// 4. Get WOTS+ Pubic Key
-	pk := wotsKey.ComputePK()
+	// 4. Encode output into BIP39 mnemonic
+	outMnem, _ := bip39.NewMnemonic(out)
 
-	// 5. Derive Sleeve secret key and output entropy
-	secretKey := hasher.SHA3_256.Hash(append([]byte("xx network sleeve"), node.Key...))
-	outEnt := hasher.SHA3_256.Hash(append(secretKey, pk...))
-
-	// 6. Encode output entropy into BIP39 mnemonic
-	outMnem, _ := bip39.NewMnemonic(outEnt)
-
-	// 7. Create sleeve
+	// 5. Create sleeve
 	s := &Sleeve{
 		mnemonic:  mnemonic,
 		output:    outMnem,
 	}
 	return s, nil
+}
+
+// Generate a Sleeve
+// Takes secret seed and public seed as input
+// Generates WOTS+ key from the seeds and also a sleeve secret key
+// Returns the sleeve output entropy
+func generateSleeve(secretSeed, publicSeed []byte) []byte {
+	// 1. Generate WOTS+ key from seed and public seed
+	wotsKey := wots.NewKeyFromSeed(wotsParams, secretSeed, publicSeed)
+
+	// 2. Get WOTS+ Pubic Key
+	pk := wotsKey.ComputePK()
+
+	// 3. Derive Sleeve secret key and return output
+	secretKey := hasher.SHA3_256.Hash(append([]byte("xx network sleeve"), secretSeed...))
+	return hasher.SHA3_256.Hash(append(secretKey, pk...))
 }
