@@ -41,9 +41,9 @@ func GenerateWallet() (SleeveJson, error) {
 	}, nil
 }
 
-func RecoverWallet(mnemonic string) (SleeveJson, error) {
+func RecoverWallet(mnemonic, passphrase string) (SleeveJson, error) {
 	// 1. Recover sleeve wallet
-	sleeve, err := wallet.NewSleeveFromMnemonic(mnemonic, "")
+	sleeve, err := wallet.NewSleeveFromMnemonic(mnemonic, passphrase)
 	if err != nil {
 		return SleeveJson{}, err
 	}
@@ -116,6 +116,23 @@ func ReadMnemonic() string {
 		panic(fmt.Sprintf("Error reading mnemonic: %s", err))
 	}
 	// Remove extra spaces at start or end of mnemonic and new line
+	parsed := strings.Trim(str, " \n")
+	Clear()
+	fmt.Println()
+	fmt.Println()
+	return parsed
+}
+
+func ReadPassphrase() string {
+	buf := bufio.NewReader(os.Stdin)
+	fmt.Println()
+	fmt.Println("   Please type your passphrase")
+	fmt.Println("   NOTE: This is optional, leave blank if no passphrase")
+	str, err := buf.ReadString('\n')
+	if err != nil {
+		panic(fmt.Sprintf("Error reading passphrase: %s", err))
+	}
+	// Remove extra spaces at start or end of passphrase and new line
 	parsed := strings.Trim(str, " \n")
 	Clear()
 	fmt.Println()
@@ -293,7 +310,8 @@ func Recover() {
 	attempt := 0
 	for {
 		mnemonic := ReadMnemonic()
-		sleeve, err = RecoverWallet(mnemonic)
+		passphrase := ReadPassphrase()
+		sleeve, err = RecoverWallet(mnemonic, passphrase)
 		if err != nil {
 			color.Set(color.FgRed)
 			attempt++
