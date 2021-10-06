@@ -33,3 +33,5 @@ mnemonic, which can be used to generate non quantum secure keys
 on any blockchain platform.
 
 The academic paper for Sleeve can be found [here](https://eprint.iacr.org/2021/872.pdf)
+
+This implementation of Sleeve has been audited, and the report can be found in [audit](audit).
