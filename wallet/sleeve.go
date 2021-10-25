@@ -15,11 +15,6 @@ import (
 	"strings"
 )
 
-var (
-	wotsParams = wots.DecodeParams(wots.DefaultParams)
-	path, _ = NewPath(0, uint32(wots.DefaultParams), 0)
-)
-
 const EntropySize = 32
 const MnemonicWords = 24
 
@@ -33,7 +28,7 @@ const MnemonicWords = 24
 	A complete diagram of the Sleeve wallet generation can be found
 	in the docs folder. This implementation of Sleeve uses a WOTS+
 	key as the underlying quantum secure key, and the diagram for
-	the generation of this key can also bbe found in the docs folder.
+	the generation of this key can also be found in the docs folder.
 
 	Essentially, the input for wallet generation is random entropy,
 	which is encoded into a mnemonic phrase using BIP39. Then a BIP44
@@ -69,11 +64,34 @@ type Sleeve struct {
 	output    string
 }
 
+// Generation spec for a Sleeve wallet
+// Account and WOTS+ params can be specified
+type GenSpec struct {
+	account uint32
+	params  wots.ParamsEncoding
+}
+
+func DefaultGenSpec() GenSpec {
+	return GenSpec{
+		account: 0,
+		params:  wots.DefaultParams,
+	}
+}
+
+func (g GenSpec) PathFromSpec() (Path, error) {
+	return NewPath(g.account, uint32(g.params), 0)
+}
+
+func (g GenSpec) WotsParams() *wots.Params {
+	return wots.DecodeParams(g.params)
+}
+
 ///////////////////////////////////////////////////////////////////////
 // CONSTRUCTORS
 
-// Create a sleeve reading entropy from the provided CSPRNG and with the supplied passphrase
-func NewSleeve(csprng io.Reader, passphrase string) (*Sleeve, error) {
+// Create a sleeve reading entropy from the provided CSPRNG, with the supplied passphrase
+// and using the given generation spec
+func NewSleeve(csprng io.Reader, passphrase string, spec GenSpec) (*Sleeve, error) {
 	// 1. Read EntropySize bytes of entropy from csprng
 	ent := make([]byte, EntropySize)
 	if n, err := csprng.Read(ent); n != EntropySize || err != nil {
@@ -81,12 +99,12 @@ func NewSleeve(csprng io.Reader, passphrase string) (*Sleeve, error) {
 	}
 
 	// 2. Get sleeve from entropy
-	return NewSleeveFromEntropy(ent, passphrase)
+	return NewSleeveFromEntropy(ent, passphrase, spec)
 }
 
-// Create a sleeve with provided entropy and passphrase
+// Create a sleeve with provided entropy, passphrase and using the given generation spec
 // Entropy must have 32 bytes
-func NewSleeveFromEntropy(ent []byte, passphrase string) (*Sleeve, error) {
+func NewSleeveFromEntropy(ent []byte, passphrase string, spec GenSpec) (*Sleeve, error) {
 	// 1. Generate BIP39 mnemonic from entropy
 	// (fails if entropy is not 16, 20, 24, 28 or 32 bytes)
 	mnem, err := bip39.NewMnemonic(ent)
@@ -100,12 +118,12 @@ func NewSleeveFromEntropy(ent []byte, passphrase string) (*Sleeve, error) {
 	}
 
 	// 3. Get Sleeve from mnemonic
-	return NewSleeveFromMnemonic(mnem, passphrase)
+	return NewSleeveFromMnemonic(mnem, passphrase, spec)
 }
 
 // Create a sleeve with provided mneomonic and passphrase
 // Mnemonic must be valid under BIP39 and have 24 words
-func NewSleeveFromMnemonic(mnemonic, passphrase string) (*Sleeve, error) {
+func NewSleeveFromMnemonic(mnemonic, passphrase string, spec GenSpec) (*Sleeve, error) {
 	// 1. Validate mnemonic has MnemonicWords words
 	words := strings.Fields(mnemonic)
 
@@ -114,7 +132,7 @@ func NewSleeveFromMnemonic(mnemonic, passphrase string) (*Sleeve, error) {
 	}
 
 	// 2. Generate sleeve (internally validates mnemonic)
-	sl, err := generateSleeveFromMnemonic(mnemonic, passphrase)
+	sl, err := generateSleeveFromMnemonic(mnemonic, passphrase, spec)
 	if err != nil {
 		return nil, err
 	}
@@ -140,26 +158,36 @@ func (s *Sleeve) GetOutputMnemonic() string {
 
 // Generate the sleeve according to the generation spec
 // (diagram found in the docs folder)
-func generateSleeveFromMnemonic(mnemonic, passphrase string) (*Sleeve, error) {
+func generateSleeveFromMnemonic(mnemonic, passphrase string, spec GenSpec) (*Sleeve, error) {
 	// 1. Generate seed from mnemonic (validates the mnemonic)
 	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, passphrase)
 	if err != nil {
 		return nil, err
 	}
 
-	// 2. Derive seeds using BIP32 and default path
+	// 2. Get path and wots params from GenSpec
+	path, err := spec.PathFromSpec()
+	if err != nil {
+		return nil, err
+	}
+	params := spec.WotsParams()
+	if params == nil {
+		return nil, errors.New("unknown WOTS+ params encoding")
+	}
+
+	// 3. Derive seeds using BIP32 and path
 	node, err := ComputeNode(seed, path)
 	if err != nil {
 		return nil, err
 	}
 
-	// 3. Generate sleeve
-	out := generateSleeve(node.Key, node.Code)
+	// 4. Generate sleeve
+	out := generateSleeve(node.Key, node.Code, params)
 
-	// 4. Encode output into BIP39 mnemonic
+	// 5. Encode output into BIP39 mnemonic
 	outMnem, _ := bip39.NewMnemonic(out)
 
-	// 5. Create sleeve
+	// 6. Create sleeve
 	s := &Sleeve{
 		mnemonic:  mnemonic,
 		output:    outMnem,
@@ -171,9 +199,9 @@ func generateSleeveFromMnemonic(mnemonic, passphrase string) (*Sleeve, error) {
 // Takes secret seed and public seed as input
 // Generates WOTS+ key from the seeds and also a sleeve secret key
 // Returns the sleeve output entropy
-func generateSleeve(secretSeed, publicSeed []byte) []byte {
+func generateSleeve(secretSeed, publicSeed []byte, params *wots.Params) []byte {
 	// 1. Generate WOTS+ key from seed and public seed
-	wotsKey := wots.NewKeyFromSeed(wotsParams, secretSeed, publicSeed)
+	wotsKey := wots.NewKeyFromSeed(params, secretSeed, publicSeed)
 
 	// 2. Get WOTS+ Pubic Key
 	pk := wotsKey.ComputePK()

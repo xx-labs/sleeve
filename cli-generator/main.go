@@ -22,13 +22,13 @@ var xxnet = color.CyanString("xx network")
 
 func GenerateWallet() (SleeveJson, error) {
 	// 1. Generate sleeve wallet
-	sleeve, err := wallet.NewSleeve(rand.Reader, "")
+	sleeve, err := wallet.NewSleeve(rand.Reader, "", wallet.DefaultGenSpec())
 	if err != nil {
 		return SleeveJson{}, err
 	}
 
-	// 2. Get ProtoNet Address
-	addr := wallet.ProtoNetAddressFromMnemonic(sleeve.GetOutputMnemonic())
+	// 2. Get xx network address
+	addr := wallet.XXNetworkAddressFromMnemonic(sleeve.GetOutputMnemonic())
 	if addr == "" {
 		return SleeveJson{}, nil
 	}
@@ -43,13 +43,13 @@ func GenerateWallet() (SleeveJson, error) {
 
 func RecoverWallet(mnemonic, passphrase string) (SleeveJson, error) {
 	// 1. Recover sleeve wallet
-	sleeve, err := wallet.NewSleeveFromMnemonic(mnemonic, passphrase)
+	sleeve, err := wallet.NewSleeveFromMnemonic(mnemonic, passphrase, wallet.DefaultGenSpec())
 	if err != nil {
 		return SleeveJson{}, err
 	}
 
-	// 2. Get ProtoNet Address
-	addr := wallet.ProtoNetAddressFromMnemonic(sleeve.GetOutputMnemonic())
+	// 2. Get xx network address
+	addr := wallet.XXNetworkAddressFromMnemonic(sleeve.GetOutputMnemonic())
 	if addr == "" {
 		return SleeveJson{}, nil
 	}

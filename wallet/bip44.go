@@ -6,7 +6,10 @@
 
 package wallet
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 const (
 	purpose    = uint32(0x8000002C) // 44'
@@ -55,4 +58,12 @@ func ComputeNode(seed []byte, path Path) (*Node, error) {
 	}
 
 	return n, nil
+}
+
+func (p Path) String() string {
+	str := "m"
+	for _, val := range p {
+		str += fmt.Sprintf("/%d'", val ^ firstHardened)
+	}
+	return str
 }

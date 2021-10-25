@@ -36,14 +36,14 @@ func (r *LimitedReader) Read(p []byte) (n int, err error) {
 
 func TestNewSleeve(t *testing.T) {
 	// Test with error reader
-	_, err := NewSleeve(&ErrReader{}, "")
+	_, err := NewSleeve(&ErrReader{}, "", DefaultGenSpec())
 
 	if err == nil {
 		t.Fatalf("NewSleeve() should return error when there's an error reading entropy")
 	}
 
 	// Test with limited bytes reader
-	_, err = NewSleeve(&LimitedReader{EntropySize/2}, "")
+	_, err = NewSleeve(&LimitedReader{EntropySize/2}, "", DefaultGenSpec())
 
 	if err == nil {
 		t.Fatalf("NewSleeve() should return error when there's an error reading enough bytes of entropy")
@@ -54,7 +54,7 @@ func TestNewSleeveFromEntropy(t *testing.T) {
 	// Test wrong entropy size (31 bytes)
 	ent := make([]byte, EntropySize-1)
 
-	_, err := NewSleeveFromEntropy(ent, "")
+	_, err := NewSleeveFromEntropy(ent, "", DefaultGenSpec())
 
 	if err == nil {
 		t.Fatalf("NewSleeveFromEntropy() should return error when provided entropy doesn't meet BIP39 standard")
@@ -63,7 +63,7 @@ func TestNewSleeveFromEntropy(t *testing.T) {
 	// Test valid BIP39 entropy size (16 bytes), but not enough for Sleeve
 	ent = make([]byte, EntropySize/2)
 
-	_, err = NewSleeveFromEntropy(ent, "")
+	_, err = NewSleeveFromEntropy(ent, "", DefaultGenSpec())
 
 	if err == nil {
 		t.Fatalf("NewSleeveFromEntropy() should return error when provided entropy is of incorrect size")
@@ -74,7 +74,7 @@ func TestNewSleeveFromMnemonic(t *testing.T) {
 	// Test mnemonic with less than 24 words
 	randMnem := "one two three xx    network   sleeve implementation"
 
-	_, err := NewSleeveFromMnemonic(randMnem, "")
+	_, err := NewSleeveFromMnemonic(randMnem, "", DefaultGenSpec())
 
 	if err == nil {
 		t.Fatalf("NewSleeveFromMnemonic() should return error when provided mnemonic has invalid number of words")
@@ -84,7 +84,7 @@ func TestNewSleeveFromMnemonic(t *testing.T) {
 	invalidWordMnem := "armed output survey rent myself sentence warm eyebrow scan isolate thunder point" +
 		" bulk skirt sketch bird palm sleep dash jazz list behave spin xxnetwork"
 
-	_, err = NewSleeveFromMnemonic(invalidWordMnem, "")
+	_, err = NewSleeveFromMnemonic(invalidWordMnem, "", DefaultGenSpec())
 
 	if err == nil {
 		t.Fatalf("NewSleeveFromMnemonic() should return error when provided mnemonic has an invalid work")
@@ -94,10 +94,48 @@ func TestNewSleeveFromMnemonic(t *testing.T) {
 	invalidChkMnem := "armed output survey rent myself sentence warm eyebrow scan isolate thunder point" +
 		" bulk skirt sketch bird palm sleep dash jazz list behave spin spin"
 
-	_, err = NewSleeveFromMnemonic(invalidChkMnem, "")
+	_, err = NewSleeveFromMnemonic(invalidChkMnem, "", DefaultGenSpec())
 
 	if err == nil {
 		t.Fatalf("NewSleeveFromMnemonic() should return error when provided mnemonic has incorrect checksum")
+	}
+}
+
+func TestNewSleeveWithGenSpec(t *testing.T) {
+	// Test valid spec
+	spec := GenSpec{
+		account: 1992,
+		params: wots.Level3,
+	}
+
+	_, err := NewSleeve(rand.Reader, "", spec)
+
+	if err != nil {
+		t.Fatalf("NewSleeve() shouldn't return error in valid generation")
+	}
+
+	// Test invalid account
+	spec = GenSpec{
+		account: firstHardened,
+		params: wots.Level3,
+	}
+
+	_, err = NewSleeve(rand.Reader, "", spec)
+
+	if err == nil {
+		t.Fatalf("NewSleeve() shouldn return error when desired account is invalid")
+	}
+
+	// Test invalid wots params
+	spec = GenSpec{
+		account: 1992,
+		params: wots.ParamsEncodingLen,
+	}
+
+	_, err = NewSleeve(rand.Reader, "", spec)
+
+	if err == nil {
+		t.Fatalf("NewSleeve() shouldn return error when WOTS+ params encoding is invalid")
 	}
 }
 
@@ -111,7 +149,7 @@ const (
 
 func TestSleeve_Getters(t *testing.T) {
 	// Test valid Sleeve and getters
-	sleeve, err := NewSleeve(rand.Reader, "")
+	sleeve, err := NewSleeve(rand.Reader, "", DefaultGenSpec())
 
 	if err != nil {
 		t.Fatalf("NewSleeve() shouldn't return error in valid generation")
@@ -129,7 +167,7 @@ func TestSleeve_Getters(t *testing.T) {
 func TestSleeve_Consistency(t *testing.T) {
 	// Test Sleeve with provided test vector
 	ent, _ := hex.DecodeString(testVectorEntropy)
-	sleeve, err := NewSleeveFromEntropy(ent, "TREZOR")
+	sleeve, err := NewSleeveFromEntropy(ent, "TREZOR", DefaultGenSpec())
 
 	if err != nil {
 		t.Fatalf("NewSleeveFromEntropy() shouldn't return error in valid generation")
@@ -137,7 +175,7 @@ func TestSleeve_Consistency(t *testing.T) {
 
 	// Validate mnemonic is correct
 	if sleeve.GetMnemonic() != testVectorMnemonic {
-		t.Fatalf("Consistency violation! GetMnemonic() returned wrong mnemonic. Got %s, expected %s",
+		t.Fatalf("Consistency violation! GetMnemonic() returned wrong mnemonic. Got: %s\nExpected: %s\n",
 			sleeve.GetMnemonic(), testVectorMnemonic)
 	}
 
@@ -155,6 +193,6 @@ func TestSleeve_Consistency(t *testing.T) {
 	// Compare output mnemonic
 	if sleeve.GetOutputMnemonic() != outMnem {
 		t.Fatalf("Consistency violation! GetOutputMnemonic() returned wrong output mnemonic." +
-			" Got %s, expected %s", sleeve.GetOutputMnemonic(), outMnem)
+			" Got: %s\nExpected: %s\n", sleeve.GetOutputMnemonic(), outMnem)
 	}
 }

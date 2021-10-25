@@ -62,6 +62,13 @@ func TestNewPath(t *testing.T) {
 	if p[4] != firstHardened {
 		t.Fatalf("NewPath(): fifth path index is incorrect. Got %d, expected %d", p[4], firstHardened)
 	}
+
+	// Check path string is correct
+	expected := "m/44'/1955'/0'/0'/0'"
+	str := p.String()
+	if str != expected {
+		t.Fatalf("Path.String() returned incorrect string. Expected %s. Got %s", expected, str)
+	}
 }
 
 func TestComputeNode(t *testing.T) {

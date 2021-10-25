@@ -15,13 +15,13 @@ func generateECDSAFromPriv(priv []byte) {
 }
 
 func generateWOTSKey(seed, pSeed []byte) {
-	wotsKey := wots.NewKeyFromSeed(wotsParams, seed, pSeed)
+	wotsKey := wots.NewKeyFromSeed(wots.DecodeParams(wots.DefaultParams), seed, pSeed)
 	// Force computation of WOTS PK
 	_ = wotsKey.ComputePK()
 }
 
 func generateSleeveECDSA(seed, pSeed []byte) {
-	generateECDSAFromPriv(generateSleeve(seed, pSeed))
+	generateECDSAFromPriv(generateSleeve(seed, pSeed, wots.DecodeParams(wots.DefaultParams)))
 }
 
 func BenchmarkSleeve_GenerateECDSA(b *testing.B) {
