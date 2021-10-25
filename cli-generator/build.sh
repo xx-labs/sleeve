@@ -7,3 +7,4 @@ echo "==> Building Sleeve CLI for Linux"
 GOOS=linux GOARCH=amd64 go build -o bin/sleeve-linux
 echo "==> Building Sleeve CLI for Windows"
 GOOS=windows GOARCH=amd64 go build -o bin/sleeve-windows.exe
+shasum -a 256 bin/*
