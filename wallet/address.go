@@ -10,23 +10,23 @@ import (
 	"github.com/xx-labs/sleeve/hasher"
 )
 
-const protoNetPrefix = 42
+const testnetPrefix = 42
 const xxNetworkPrefix = 55
 
 //////////////////////////////////////////////////
 //-------------- SR25519 ACCOUNTS --------------//
 //////////////////////////////////////////////////
 
-func ProtoNetAddressFromMnemonic(mnemonic string) string {
+func TestnetAddressFromMnemonic(mnemonic string) string {
 	xxWallet, err := sr25519WalletFromMnemonic(mnemonic)
 	if err != nil {
 		return ""
 	}
-	return generateSS58Address(protoNetPrefix, xxWallet.Public())
+	return generateSS58Address(testnetPrefix, xxWallet.Public())
 }
 
-func ValidateProtoNetAddress(address string) (bool, error) {
-	return validateSS58Address(protoNetPrefix, address)
+func ValidateTestnetAddress(address string) (bool, error) {
+	return validateSS58Address(testnetPrefix, address)
 }
 
 func XXNetworkAddressFromMnemonic(mnemonic string) string {
@@ -88,13 +88,13 @@ func validateSS58Address(network uint8, address string) (bool, error) {
 	data := base58.Decode(address)
 
 	// 2. Check address length
-	netID := data[networkIDPos]
-	checksumData := data[:checksumPos]
-	checksum := data[checksumPos:]
 	if len(data) != addressLen {
 		return false, errors.New(
 			fmt.Sprintf("incorrect address length: got %d, expected %d", len(data), addressLen))
 	}
+	netID := data[networkIDPos]
+	checksumData := data[:checksumPos]
+	checksum := data[checksumPos:]
 
 	// 3. Verify networkID (1st byte)
 	if netID != network {
