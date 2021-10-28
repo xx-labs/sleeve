@@ -78,12 +78,15 @@ func DefaultGenSpec() GenSpec {
 	}
 }
 
-func (g GenSpec) PathFromSpec() (Path, error) {
-	return NewPath(g.account, uint32(g.params), 0)
+func NewGenSpec(account uint32, params wots.ParamsEncoding) GenSpec {
+	return GenSpec{
+		account: account,
+		params:  params,
+	}
 }
 
-func (g GenSpec) WotsParams() *wots.Params {
-	return wots.DecodeParams(g.params)
+func (g GenSpec) PathFromSpec() (Path, error) {
+	return NewPath(g.account, uint32(g.params), 0)
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -170,7 +173,7 @@ func generateSleeveFromMnemonic(mnemonic, passphrase string, spec GenSpec) (*Sle
 	if err != nil {
 		return nil, err
 	}
-	params := spec.WotsParams()
+	params := wots.DecodeParams(spec.params)
 	if params == nil {
 		return nil, errors.New("unknown WOTS+ params encoding")
 	}
