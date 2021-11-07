@@ -9,3 +9,7 @@ bench-sleeve:
 	@echo ""
 	@benchstat out.txt
 	@rm out.txt
+
+coverage:
+	go test -coverpkg=./... -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out

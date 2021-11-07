@@ -2,12 +2,14 @@ package wallet
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/vedhavyas/go-subkey"
 	sr "github.com/vedhavyas/go-subkey/sr25519"
 	"github.com/xx-labs/sleeve/hasher"
+	"sort"
 )
 
 const testnetPrefix = 42
@@ -47,6 +49,78 @@ func sr25519WalletFromMnemonic(mnemonic string) (subkey.KeyPair, error) {
 	scheme := sr.Scheme{}
 	return subkey.DeriveKeyPair(scheme, mnemonic)
 
+}
+
+//////////////////////////////////////////////////
+//------------- MULTISIG ACCOUNTS --------------//
+//////////////////////////////////////////////////
+
+// Maximum of 63 signatories (max length of parity scale compact encoding of an integer that fits in 1 byte)
+const maxSignatories = 63
+
+// Derive a Multisig address from signatories addresses and threshold
+// MSigAddress = BLAKE2B_256("modlpy/utilisuba" || signatories.length << 2 || sorted_signatories || threshold)
+func DeriveMultisigAddress(signatories []string, threshold uint16) (string, error) {
+	// 1. Basic checks
+	size := len(signatories)
+	// 1.1. Check at least one signatory
+	if size == 0 {
+		return "", errors.New("signatories can't be empty")
+	}
+	// 1.2. Check not too many signatories
+	if size > maxSignatories {
+		return "", errors.New(
+			fmt.Sprintf("too many signatories: got %d, max %d", size, maxSignatories))
+	}
+	// 1.3. Check threshold isn't zero
+	if int(threshold) == 0 {
+		return "", errors.New("threshold can't be zero")
+	}
+	// 1.4. Check threshold is smaller or equal to signatories size
+	if size < int(threshold) {
+		return "", errors.New(
+			fmt.Sprintf("invalid threshold: got %d, with %d signatories", threshold, size))
+	}
+
+	// 2. Get network id from first signatory and check all are using the same
+	var network uint8
+	var err error
+	network, err = extractNetworkId(signatories[0])
+	if err != nil {
+		return "", err
+	}
+
+	// 3. Validate signatories addresses
+	for _, sig := range signatories {
+		_, err = validateSS58Address(network, sig)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	// 4. Convert signatories addresses to public keys
+	keys := make([][]byte, size)
+	for i, sig := range signatories {
+		keys[i] = extractPublicKey(sig)
+	}
+
+	// 5. Sort public keys
+	sort.Slice(keys, func(i int, j int) bool { return bytes.Compare(keys[i], keys[j]) < 0 })
+
+	// 6. Derive multisig address
+	h := hasher.BLAKE2B_256.New()
+	str := "modlpy/utilisuba"
+	h.Write([]byte(str))
+	length := uint8(size << 2)
+	h.Write([]byte{length})
+	for _, key := range keys {
+		h.Write(key)
+	}
+	tBytes := make([]byte, 2)
+	binary.LittleEndian.PutUint16(tBytes, threshold)
+	h.Write(tBytes)
+	res := h.Sum(nil)
+	return generateSS58Address(network, res), nil
 }
 
 //////////////////////////////////////////////////
@@ -113,4 +187,23 @@ func validateSS58Address(network uint8, address string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// extract network id from address
+func extractNetworkId(address string) (byte, error) {
+	// 1. Base58 decode string
+	data := base58.Decode(address)
+
+	// 2. Check address length
+	if len(data) != addressLen {
+		return 0x00, errors.New(
+			fmt.Sprintf("incorrect address length: got %d, expected %d", len(data), addressLen))
+	}
+	return data[networkIDPos], nil
+}
+
+// extract public key from valid address
+func extractPublicKey(address string) []byte {
+	data := base58.Decode(address)
+	return data[networkIDLen:checksumPos]
 }

@@ -118,3 +118,102 @@ func TestValidateSS58Address(t *testing.T) {
 		t.Fatalf("validateSS58Address() should fail for invalid checksum address")
 	}
 }
+
+const (
+	signatoryOne = "5EfQfwGBaiM8P5uBCent4Ks8WH6heTGX1nTChN2aEzNuoQSw"
+	signatoryTwo = "5Hg7cT1PucPmYBmz9nA3mBVTNwjKH4ZSVVtMRzLFqwuvAn3J"
+	invalidSignatoryTwo = "5Hg7cT1PucPmYBmz9nA3mBVTNwJKH4ZSVVtMRzLFqwuvAn3J"
+	signatoryThree = "5DtdLQrKzjWcE8C9GvhNHijn6wiac8wJ6i34qSoEQ39Kohpb"
+	multisigAddress = "5FBUiZFN9NnnEC7ie1hwU4fUJhtRCCrz4tqVBMr46dCh8ZAG"
+)
+
+func TestDeriveMultisigAddress(t *testing.T) {
+	// Test invalid signatories size and thresholds
+	signatories := make([]string, 0)
+
+	_, err := DeriveMultisigAddress(signatories, 1)
+
+	if err == nil {
+		t.Fatalf("DeriveMultisigAddress() should fail for zero length signatories")
+	}
+
+	signatories = make([]string, maxSignatories+1)
+	_, err = DeriveMultisigAddress(signatories, 1)
+
+	if err == nil {
+		t.Fatalf("DeriveMultisigAddress() should fail for too many signatories")
+	}
+
+	signatories = make([]string, 3)
+	_, err = DeriveMultisigAddress(signatories, 0)
+
+	if err == nil {
+		t.Fatalf("DeriveMultisigAddress() should fail for zero threshold")
+	}
+
+	_, err = DeriveMultisigAddress(signatories, 4)
+
+	if err == nil {
+		t.Fatalf("DeriveMultisigAddress() should fail for threshold larger than signatories")
+	}
+
+	// Test invalid first address
+	signatories[0] = "5D44121421412"
+	_, err = DeriveMultisigAddress(signatories, 2)
+
+	if err == nil {
+		t.Fatalf("DeriveMultisigAddress() should fail for invalid first address")
+	}
+
+	// Test addresses with different network ID
+	signatories[0] = signatoryOne
+	signatories[1] = testVectorXXNetworkAddress
+	signatories[2] = signatoryThree
+	_, err = DeriveMultisigAddress(signatories, 2)
+
+	if err == nil {
+		t.Fatalf("DeriveMultisigAddress() should fail if addresses don't have same networkID")
+	}
+
+	// Test one invalid address
+	signatories[0] = signatoryOne
+	signatories[1] = invalidSignatoryTwo
+	signatories[2] = signatoryThree
+	_, err = DeriveMultisigAddress(signatories, 2)
+
+	if err == nil {
+		t.Fatalf("DeriveMultisigAddress() should fail if any address is invalid")
+	}
+}
+
+func TestDeriveMultisigAddressConsistency(t *testing.T) {
+	// Test multisig address is the expected one
+	signatories := make([]string, 3)
+	signatories[0] = signatoryOne
+	signatories[1] = signatoryTwo
+	signatories[2] = signatoryThree
+
+	msig, err := DeriveMultisigAddress(signatories, 2)
+
+	if err != nil {
+		t.Fatalf("DeriveMultisigAddress() should not fail with valid arguments")
+	}
+
+	if msig != multisigAddress {
+		t.Fatalf("DeriveMultisigAddress() produced invalid multisig address!\nGot %s\nExpected: %s",
+			msig, multisigAddress)
+	}
+
+	// Test multisig address is the same if signatories order changes
+	signatories[0], signatories[1] = signatories[1], signatories[0]
+	msig, err = DeriveMultisigAddress(signatories, 2)
+
+	if err != nil {
+		t.Fatalf("DeriveMultisigAddress() should not fail with valid arguments")
+	}
+
+	if msig != multisigAddress {
+		t.Fatalf("DeriveMultisigAddress() produced invalid multisig address!\nGot %s\nExpected: %s",
+			msig, multisigAddress)
+	}
+}
