@@ -19,6 +19,8 @@ var quantumPhrase string
 var passphrase string
 var account uint32
 var wotsSecurityLevel string
+var numWallets uint32
+var numAccounts uint32
 
 // Input files flags
 var quantumPhraseFile string
@@ -28,8 +30,6 @@ var passphraseFile string
 var outputFile string
 var outputType string
 var testnet bool
-
-var vanity string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -69,14 +69,13 @@ func init() {
 	// Get arguments from files if needed
 	cobra.OnInitialize(readInputFiles)
 
-	// Vanity address generation string
-	rootCmd.PersistentFlags().StringVarP(&vanity,"vanity", "v", "", "specify a string (non case sensitive) that should appear at the beginning of the generated wallet address")
-
 	// Input flags
 	rootCmd.PersistentFlags().StringVarP(&quantumPhrase, "quantum", "q", "", "specify the quantum recovery phrase. Leave empty to generate a new Sleeve from scratch")
 	rootCmd.PersistentFlags().StringVarP(&passphrase, "pass", "p", "", "specify a passphrase")
 	rootCmd.PersistentFlags().Uint32VarP(&account, "account", "a", 0, "specify the account number")
 	rootCmd.PersistentFlags().StringVarP(&wotsSecurityLevel, "security", "s", "level0", "specify the WOTS+ security level. One of [level0, level1, level2, level3]")
+	rootCmd.PersistentFlags().Uint32VarP(&numWallets, "wallets", "w", 1, "specify the number of Sleeve wallets to generate")
+	rootCmd.PersistentFlags().Uint32VarP(&numAccounts, "num-accounts", "n", 1, "specify the number of accounts to derive for each wallet")
 
 	// Input from file
 	rootCmd.PersistentFlags().StringVar(&quantumPhraseFile, "quantum-file", "", "specify the quantum recovery phrase from a file. Overwrites the value of --quantum")
@@ -89,9 +88,9 @@ func init() {
 }
 
 func checkArgs() bool {
-	// Don't allow vanity generation with a quantum recovery phrase
-	if vanity != "" && quantumPhrase != "" {
-		fmt.Println("Can't do vanity generation when a quantum recovery phrase is specified")
+	// Can't recover multiple wallets
+	if quantumPhrase != "" && numWallets != 1 {
+		fmt.Println("Can't use a given quantum recovery phrase with more than 1 wallet")
 		return false
 	}
 	// Check output type
@@ -131,13 +130,15 @@ func readInputFiles() {
 	}
 }
 
-func handleOutput(sl SleeveJson) {
+func handleOutput(sl []SleeveJson) {
 	// Get output according to type
 	var out []byte
 	var err error
 	switch  outputType {
 	case "text":
-		out = []byte(sl.String())
+		for _, s := range sl {
+			out = append(out, fmt.Sprintf("%s\n\n", s.String())...)
+		}
 	case "json":
 		// noop
 		out, err = json.MarshalIndent(sl, "", "  ")
@@ -153,8 +154,10 @@ func handleOutput(sl SleeveJson) {
 		if err != nil {
 			panic(fmt.Sprintf("error writing sleeve data to file: %s", err))
 		}
-		// Write just address to stdout
-		fmt.Println(sl.Address)
+		// Write just addresses to stdout
+		for _, s := range sl {
+			fmt.Println(s.Address)
+		}
 	} else {
 		// Write to stdout
 		fmt.Println(string(out))

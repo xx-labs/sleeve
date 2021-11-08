@@ -10,10 +10,8 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/xx-labs/sleeve/hasher"
 	"github.com/xx-labs/sleeve/wallet"
 	"github.com/xx-labs/sleeve/wots"
-	"strings"
 )
 
 type SleeveJson struct {
@@ -72,10 +70,10 @@ func parseArgs() (args, error) {
 
 	return args{
 		generate: generate,
-		quantum: quantumPhrase,
-		pass: passphrase,
-		spec: spec,
-		path: path.String(),
+		quantum:  quantumPhrase,
+		pass:     passphrase,
+		spec:     spec,
+		path:     path.String(),
 	}, nil
 }
 
@@ -114,57 +112,38 @@ func getJson(path string, sleeve *wallet.Sleeve) SleeveJson {
 	}
 }
 
-func sleeve() (SleeveJson, error) {
+func sleeve() ([]SleeveJson, error) {
 	// Parse args
 	args, err := parseArgs()
 	if err != nil {
-		return SleeveJson{}, err
+		return nil, err
 	}
 
-	// Vanity generator
-	if vanity != "" {
-		return vanityGen(args)
-	}
-
-	// Regular generation
-	return getSleeve(args)
-}
-
-func vanityGen(args args) (SleeveJson, error) {
-	tries := uint32(0)
-	entropy := make([]byte, wallet.EntropySize)
-	n, err := rand.Read(entropy)
-	if err != nil {
-		return SleeveJson{}, err
-	}
-	if n != wallet.EntropySize {
-		return SleeveJson{}, errors.New("couldn't read 32 bytes of entropy")
-	}
-	h := hasher.BLAKE2B_256.New()
-	for {
-		sleeve, err := wallet.NewSleeveFromEntropy(entropy, args.pass, args.spec)
-		if err != nil {
-			return SleeveJson{}, err
+	// Sleeve generation
+	wallets := make([]SleeveJson, numWallets*numAccounts)
+	// Keep start account
+	startAccount := account
+	for i := uint32(0); i < numWallets; i++ {
+		for j := uint32(0); j < numAccounts; j++ {
+			// Increase account number
+			account = startAccount + j
+			// Reparse args
+			args, err = parseArgs()
+			if err != nil {
+				return nil, err
+			}
+			// Generate wallet
+			wallets[i*numAccounts+j], err = getSleeve(args)
+			if err != nil {
+				return nil, err
+			}
+			// Set the quantum phrase if this is first wallet
+			if j == 0 {
+				quantumPhrase = wallets[i*numAccounts+j].Quantum
+			}
 		}
-		json := getJson(args.path, sleeve)
-		if addressHasVanity(json.Address) {
-			return json, nil
-		}
-		h.Write(entropy)
-		entropy = h.Sum(nil)
-		tries++
-		// Uint32 wrapped around
-		if tries == 0 {
-			return SleeveJson{}, errors.New("couldn't generate vanity address after trying 2^32 seeds")
-		}
+		// Reset quantum phrase to generate new wallet on next iteration
+		quantumPhrase = ""
 	}
-}
-
-func addressHasVanity(address string) bool {
-	// Convert address to lower case
-	lowerAddress := strings.ToLower(address)
-	// Convert vanity to lower case
-	lowerVanity := strings.ToLower(vanity)
-	idx := strings.Index(lowerAddress, lowerVanity)
-	return idx == 1
+	return wallets, nil
 }
