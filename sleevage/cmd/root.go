@@ -161,8 +161,8 @@ func handleOutput(sl []SleeveJson) {
 		// Write just addresses to stdout
 		for _, s := range sl {
 			fmt.Println(s.Address)
-			for _, addr := range s.StandardDeriv {
-				fmt.Println(addr)
+			for _, deriv := range s.StandardDeriv {
+				fmt.Println(deriv.Address)
 			}
 		}
 	} else {
