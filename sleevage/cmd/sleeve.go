@@ -109,15 +109,14 @@ func getAddress(sleeve *wallet.Sleeve) string {
 	return wallet.XXNetworkAddressFromMnemonic(sleeve.GetOutputMnemonic())
 }
 
-const defaultPath = "//xx network//"
-
 func getJson(path string, sleeve *wallet.Sleeve) SleeveJson {
 	var addrs []string = nil
 	if derivations > 0 {
 		addrs = make([]string, derivations)
 		for i := uint32(0); i < derivations; i++ {
+			path := fmt.Sprintf("//%s//%d", prefix, i)
 			addrs[i] = wallet.XXNetworkAddressFromMnemonic(
-				fmt.Sprintf("%s%s%d", sleeve.GetOutputMnemonic(), defaultPath, i),
+				fmt.Sprintf("%s%s%d", sleeve.GetOutputMnemonic(), path, i),
 			)
 		}
 	}
