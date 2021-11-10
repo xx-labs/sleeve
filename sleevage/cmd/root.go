@@ -21,6 +21,7 @@ var account uint32
 var wotsSecurityLevel string
 var numWallets uint32
 var numAccounts uint32
+var derivations uint32
 
 // Input files flags
 var quantumPhraseFile string
@@ -76,6 +77,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&wotsSecurityLevel, "security", "s", "level0", "specify the WOTS+ security level. One of [level0, level1, level2, level3]")
 	rootCmd.PersistentFlags().Uint32VarP(&numWallets, "wallets", "w", 1, "specify the number of Sleeve wallets to generate")
 	rootCmd.PersistentFlags().Uint32VarP(&numAccounts, "num-accounts", "n", 1, "specify the number of accounts to derive for each wallet")
+	rootCmd.PersistentFlags().Uint32VarP(&derivations, "derive", "d", 0, "number of accounts to derive from standard wallet")
 
 	// Input from file
 	rootCmd.PersistentFlags().StringVar(&quantumPhraseFile, "quantum-file", "", "specify the quantum recovery phrase from a file. Overwrites the value of --quantum")
@@ -91,6 +93,11 @@ func checkArgs() bool {
 	// Can't recover multiple wallets
 	if quantumPhrase != "" && numWallets != 1 {
 		fmt.Println("Can't use a given quantum recovery phrase with more than 1 wallet")
+		return false
+	}
+	// Can't derive team accounts from multiple wallets
+	if derivations > 0 && numWallets != 1 {
+		fmt.Println(" Can't derive team accounts with more than 1 wallets")
 		return false
 	}
 	// Check output type

@@ -15,11 +15,12 @@ import (
 )
 
 type SleeveJson struct {
-	Quantum  string `json:"QuantumPhrase"`
-	Pass     string `json:"Passphrase"`
-	Path     string `json:"DerivationPath"`
-	Standard string `json:"StandardPhrase"`
-	Address  string `json:"Address"`
+	Quantum       string   `json:"QuantumPhrase"`
+	Pass          string   `json:"Passphrase"`
+	Path          string   `json:"DerivationPath"`
+	Standard      string   `json:"StandardPhrase"`
+	Address       string   `json:"Address"`
+	StandardDeriv []string `json:"StandardDeriv"`
 }
 
 func (s SleeveJson) String() string {
@@ -28,6 +29,12 @@ func (s SleeveJson) String() string {
 	str += fmt.Sprintf("path: %s\n", s.Path)
 	str += fmt.Sprintf("standard recovery phrase: %s\n", s.Standard)
 	str += fmt.Sprintf("address: %s", s.Address)
+	if s.StandardDeriv != nil {
+		str += fmt.Sprintf("\nstandard derived addresses:\n")
+		for i, addr := range s.StandardDeriv {
+			str += fmt.Sprintf("#%2d:  %s\n", i, addr)
+		}
+	}
 	return str
 }
 
@@ -102,13 +109,25 @@ func getAddress(sleeve *wallet.Sleeve) string {
 	return wallet.XXNetworkAddressFromMnemonic(sleeve.GetOutputMnemonic())
 }
 
+const defaultPath = "//xx network//"
+
 func getJson(path string, sleeve *wallet.Sleeve) SleeveJson {
+	var addrs []string = nil
+	if derivations > 0 {
+		addrs = make([]string, derivations)
+		for i := uint32(0); i < derivations; i++ {
+			addrs[i] = wallet.XXNetworkAddressFromMnemonic(
+				fmt.Sprintf("%s%s%d", sleeve.GetOutputMnemonic(), defaultPath, i),
+			)
+		}
+	}
 	return SleeveJson{
 		Quantum:  sleeve.GetMnemonic(),
 		Pass:     passphrase,
 		Path:     path,
 		Standard: sleeve.GetOutputMnemonic(),
 		Address:  getAddress(sleeve),
+		StandardDeriv: addrs,
 	}
 }
 
