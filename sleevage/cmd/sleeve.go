@@ -127,6 +127,9 @@ func getJson(path string, sleeve *wallet.Sleeve) SleeveJson {
 			if prefix == "" {
 				// Fix path if no prefix
 				derivPath = fmt.Sprintf("//%d", i)
+			} else if derivations == 1 {
+				// Fix path if only one derivation
+				derivPath = fmt.Sprintf("//%s", prefix)
 			}
 			derivs[i] = StandardDerivation{
 				Path:    derivPath,
