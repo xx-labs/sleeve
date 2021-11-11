@@ -131,9 +131,13 @@ func getJson(path string, sleeve *wallet.Sleeve) SleeveJson {
 				// Fix path if only one derivation
 				derivPath = fmt.Sprintf("//%s", prefix)
 			}
+			addr := wallet.XXNetworkAddressFromMnemonic(sleeve.GetOutputMnemonic() + derivPath)
+			if testnet {
+				addr = wallet.TestnetAddressFromMnemonic(sleeve.GetOutputMnemonic() + derivPath)
+			}
 			derivs[i] = StandardDerivation{
 				Path:    derivPath,
-				Address: wallet.XXNetworkAddressFromMnemonic(sleeve.GetOutputMnemonic() + derivPath),
+				Address: addr,
 			}
 		}
 	}
