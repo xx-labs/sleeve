@@ -119,7 +119,7 @@ func readInputFiles() {
 			panic(fmt.Sprintf("error opening quantum phrase file: %s", err))
 		}
 		quantumPhrase = string(val)
-		quantumPhrase = strings.TrimSuffix(quantumPhrase, "\n")
+		quantumPhrase = strings.TrimRight(quantumPhrase, "\r\n")
 	}
 
 	// Read passphrase from file if specified
@@ -130,7 +130,7 @@ func readInputFiles() {
 			panic(fmt.Sprintf("error opening passphrase file: %s", err))
 		}
 		passphrase = string(val)
-		passphrase = strings.TrimSuffix(passphrase, "\n")
+		passphrase = strings.TrimRight(passphrase, "\r\n")
 	}
 }
 
