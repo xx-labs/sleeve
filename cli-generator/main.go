@@ -100,7 +100,7 @@ func ReadOption() string {
 		panic(fmt.Sprintf("Error reading option: %s", err))
 	}
 	// Remove extra spaces at start or end of option and new line
-	parsed := strings.Trim(str, " \n")
+	parsed := strings.Trim(str, " \r\n")
 	Clear()
 	fmt.Println()
 	fmt.Println()
