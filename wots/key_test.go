@@ -216,7 +216,7 @@ func TestKey_Sign(t *testing.T) {
 	}
 
 	// Signature size: ParamsEncoding (1 byte), Public Seed (32 bytes), Ladders (M+2)*N bytes
-	sigLen := 1 + 32 + (32 + 2) * 32
+	sigLen := 1 + 32 + (32+2)*32
 
 	if len(sig) != sigLen {
 		t.Fatalf("Key.Sign returned signature is too small! Expected %d, Got %d",
@@ -276,7 +276,7 @@ const (
 	MaxChecksum224 = "1be4"
 	// 255*24 = 6120
 	MaxChecksum192 = "17e8"
-	MinChecksum = "0000"
+	MinChecksum    = "0000"
 )
 
 const TestData = "XX NETWORK"
@@ -288,12 +288,12 @@ const TestData = "XX NETWORK"
 // 3. TestVector256 = CONVERT_TO_UINT8s(H || CHECK)
 // Where CONVERT_TO_UINT8s, takes each byte of the sequence H || CHECK and converts it to an uint8
 var TestVector256 = []uint8{
-	 38, 127, 249, 206, 220, 112, 171, 226,
-	191,  50,  63, 220,  72,   3, 189, 209,
-	251, 182,   0,  86,  98, 113,  43, 174,
-	  7,  95, 115, 145, 216, 128,  64,   1,
-    // Checksum
-	 16,   0,
+	38, 127, 249, 206, 220, 112, 171, 226,
+	191, 50, 63, 220, 72, 3, 189, 209,
+	251, 182, 0, 86, 98, 113, 43, 174,
+	7, 95, 115, 145, 216, 128, 64, 1,
+	// Checksum
+	16, 0,
 }
 
 // 255*32 - SUM(TestVector256[0:31]) = 255*32 - 4064 = 4096
@@ -305,12 +305,12 @@ const Checksum256 = "1000"
 // 2. CHECK = CHECKSUM(H)
 // 3. TestVector224 = CONVERT_TO_UINT8s(H || CHECK)
 var TestVector224 = []uint8{
-	 82,   8,   4,   8, 108, 101,  58, 230,
-	192, 187, 159, 234, 252,  38, 125, 184,
-	 97,  60, 179,  51, 224, 146, 175, 237,
-	207,   0, 109, 245,
+	82, 8, 4, 8, 108, 101, 58, 230,
+	192, 187, 159, 234, 252, 38, 125, 184,
+	97, 60, 179, 51, 224, 146, 175, 237,
+	207, 0, 109, 245,
 	// Checksum
-	 13, 112,
+	13, 112,
 }
 
 // 255*28 - SUM(TestVector224[0:27]) = 255*28 - 3700 = 3440
@@ -322,9 +322,9 @@ const Checksum224 = "0d70"
 // 2. CHECK = CHECKSUM(H[0:23])
 // 3. TestVector192 = CONVERT_TO_UINT8s(H[0:23] || CHECK)
 var TestVector192 = []uint8{
-	82,   8,   4,   8, 108, 101,  58, 230,
-	192, 187, 159, 234, 252,  38, 125, 184,
-	97,  60, 179,  51, 224, 146, 175, 237,
+	82, 8, 4, 8, 108, 101, 58, 230,
+	192, 187, 159, 234, 252, 38, 125, 184,
+	97, 60, 179, 51, 224, 146, 175, 237,
 	// Checksum
 	11, 165,
 }
@@ -519,9 +519,9 @@ func testConsistencyParams(params *Params, t *testing.T) {
 
 	// Compare each ladder point of the signature with the corresponding chain according to test vector indexes
 	for i := 0; i < params.total; i++ {
-		if !bytes.Equal(sigSlice[i*params.n : (i+1)*params.n], key.chains[int(compare[i])][i*params.n : (i+1)*params.n]) {
+		if !bytes.Equal(sigSlice[i*params.n:(i+1)*params.n], key.chains[int(compare[i])][i*params.n:(i+1)*params.n]) {
 			t.Fatalf("Invalid signature chain %d! Got: %x, Expected: %x", i,
-				sigSlice[i*params.n : (i+1)*params.n], key.chains[int(compare[i])][i*params.n : (i+1)*params.n])
+				sigSlice[i*params.n:(i+1)*params.n], key.chains[int(compare[i])][i*params.n:(i+1)*params.n])
 		}
 	}
 
@@ -537,5 +537,26 @@ func TestKey_Sign_Consistency_TestVectors(t *testing.T) {
 	// Test all defined parameter types
 	for i := ParamsEncoding(0); i < ParamsEncodingLen; i++ {
 		testConsistencyParams(DecodeParams(i), t)
+	}
+}
+
+const (
+	testVectorSecretSeedHex  = "66d24fb8688c9a0024c56925e2ce2af01ecabdb5a1097dae43d91f1d4ae87afc"
+	testVectorPublicSeedHex  = "8cd018d6da1d57511fc18ad0ec914346d5f40d2eaf45dc8471b9799f413f3064"
+	testVectorExpectedPubKey = "7bd49cdc5f70766c70c973a2d6c76b964333ac853c5ae8ecbfef5f1fde08705a"
+)
+
+func TestKey_ComputePKTestVector(t *testing.T) {
+	// Derive WOTS key from test vector seeds
+	seed, _ := hex.DecodeString(testVectorSecretSeedHex)
+	pSeed, _ := hex.DecodeString(testVectorPublicSeedHex)
+	key := NewKeyFromSeed(level0Params, seed, pSeed)
+	pk := key.ComputePK()
+
+	// Validate WOTS PK is correct
+	expectedPk, _ := hex.DecodeString(testVectorExpectedPubKey)
+	if !bytes.Equal(pk, expectedPk) {
+		t.Fatalf("WOTS+ generation is broken! ComputePK() returned wrong public key. Got: %x\nExpected: %x\n",
+			pk, expectedPk)
 	}
 }
