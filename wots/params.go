@@ -63,9 +63,9 @@ type Params struct {
 ///////////////////////////////////////////////////////////////////////
 // Errors
 var (
-	errWrongSigLen = errors.New("signature has incorrect length")
+	errWrongSigLen        = errors.New("signature has incorrect length")
 	errInvalidOutputSlice = errors.New("output slice is invalid: should have length 0 and capacity of 32 bytes")
-	errWrongPubKeySize = errors.New("public key has incorrect length: should be 32 bytes")
+	errWrongPubKeySize    = errors.New("public key has incorrect length: should be 32 bytes")
 )
 
 ///////////////////////////////////////////////////////////////////////
@@ -111,7 +111,7 @@ func (p *Params) Equal(other *Params) bool {
 // Decode a signature, i.e., compute the public key from the message and signature
 func (p *Params) Decode(out, msg, signature []byte) ([]byte, error) {
 	// Ensure signature has correct size
-	siglen := p.total * p.n + SeedSize
+	siglen := p.total*p.n + SeedSize
 	if len(signature) != siglen {
 		return nil, errWrongSigLen
 	}
@@ -172,7 +172,7 @@ func (p *Params) computeLadders(out, pSeed, msg, points []byte, chains [][]byte,
 	if msg != nil {
 		start = p.msgHashAndComputeChecksum(msg)
 
-	// If GENERATE() or ComputePK()
+		// If GENERATE() or ComputePK()
 	} else {
 		// Set start array with beginning of each ladder (0s when computing)
 		start = make([]byte, p.total)
@@ -198,7 +198,7 @@ func (p *Params) computeLadders(out, pSeed, msg, points []byte, chains [][]byte,
 	if chains != nil {
 		outputs = chains[W-1]
 	} else {
-		outputs = make([]byte, p.n * p.total)
+		outputs = make([]byte, p.n*p.total)
 	}
 
 	// index
@@ -207,7 +207,7 @@ func (p *Params) computeLadders(out, pSeed, msg, points []byte, chains [][]byte,
 	for i := 0; i < p.total; i++ {
 
 		// Initialize value with the relevant ladder from the signature OR Secret Keys
-		copy(value, points[i * p.n : (i+1) * p.n])
+		copy(value, points[i*p.n:(i+1)*p.n])
 
 		// If SIGN()
 		if sign {
@@ -215,7 +215,7 @@ func (p *Params) computeLadders(out, pSeed, msg, points []byte, chains [][]byte,
 			end = start[i]
 		} else {
 			begin = start[i]
-			end = W-1
+			end = W - 1
 		}
 
 		// Go down the ladder
@@ -234,13 +234,13 @@ func (p *Params) computeLadders(out, pSeed, msg, points []byte, chains [][]byte,
 			// If GENERATE()
 			if chains != nil {
 				// Save in memory for all ladders
-				copy(chains[int(j) + 1][i * p.n : (i+1) * p.n], value)
+				copy(chains[int(j)+1][i*p.n:(i+1)*p.n], value)
 			}
 		}
 
 		// If chains passed as nil copy values to outputs
 		if chains == nil {
-			copy(outputs[i * p.n : (i+1) * p.n], value)
+			copy(outputs[i*p.n:(i+1)*p.n], value)
 		}
 
 		// If GENERATE() or DECODE() or ComputePK()

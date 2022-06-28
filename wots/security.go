@@ -34,6 +34,7 @@ const (
 )
 
 var level0Params = NewParams(level0N, level0M, level0PrfH, level0MsgH)
+
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
@@ -60,6 +61,7 @@ const (
 )
 
 var level1Params = NewParams(level1N, level1M, level1PrfH, level1MsgH)
+
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
@@ -88,6 +90,7 @@ const (
 )
 
 var level2Params = NewParams(level2N, level2M, level2PrfH, level2MsgH)
+
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
@@ -116,6 +119,7 @@ const (
 )
 
 var level3Params = NewParams(level3N, level3M, level3PrfH, level3MsgH)
+
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
@@ -145,6 +149,7 @@ const (
 )
 
 var consensusParams = NewParams(consensusN, consensusM, consensusPrfH, consensusMsgH)
+
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
@@ -162,7 +167,7 @@ const (
 )
 const (
 	ParamsEncodingLen = Consensus + 1 // 5
-	DefaultParams = Level0
+	DefaultParams     = Level0
 )
 
 // Get the parameter set from its encoding
@@ -209,7 +214,7 @@ func EncodeParams(p *Params) ParamsEncoding {
 var (
 	errInvalidMsgOrSig = errors.New("message or signature is empty")
 	errConsensusParams = errors.New("can't use consensus params for transaction signatures")
-	errDecodingParams = errors.New("couldn't decode WOTS+ params")
+	errDecodingParams  = errors.New("couldn't decode WOTS+ params")
 )
 
 // Decode a transaction signature

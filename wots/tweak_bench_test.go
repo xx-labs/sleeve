@@ -29,14 +29,14 @@ func (k *Key) benchComputePK() []byte {
 	value := make([]byte, k.params.n)
 
 	// Save output values
-	outputs := make([]byte, k.params.n * k.params.total)
+	outputs := make([]byte, k.params.n*k.params.total)
 
 	// index
 	begin := uint8(0)
-	end := uint8(W -1)
+	end := uint8(W - 1)
 	for i := 0; i < k.params.total; i++ {
 		// Initialize value with the relevant ladder from the signature OR Secret Keys
-		copy(value, points[i * k.params.n : (i+1) * k.params.n])
+		copy(value, points[i*k.params.n:(i+1)*k.params.n])
 
 		// Go down the ladder
 		for j := begin; j < end; j++ {
@@ -51,7 +51,7 @@ func (k *Key) benchComputePK() []byte {
 			copy(value, prfBuffer[0:k.params.n])
 			prfBuffer = prfBuffer[:0]
 		}
-		copy(outputs[i * k.params.n : (i+1) * k.params.n], value)
+		copy(outputs[i*k.params.n:(i+1)*k.params.n], value)
 	}
 	// PubKey = Public Seed || PK_0 || PK_1 || ... || PK_n-1
 	return append(k.pSeed, outputs...)
@@ -70,9 +70,9 @@ func (p *Params) tweak(outputs []byte) []byte {
 	// Get tweak hash func
 	h := PKHash.New()
 	// Compute tweak
-	for i := 0 ; i < p.total; i++ {
-		if parity(outputs[i * p.n : (i+1) * p.n]) {
-			h.Write(outputs[i * p.n : (i+1) * p.n])
+	for i := 0; i < p.total; i++ {
+		if parity(outputs[i*p.n : (i+1)*p.n]) {
+			h.Write(outputs[i*p.n : (i+1)*p.n])
 		}
 	}
 	tweak := h.Sum(nil)

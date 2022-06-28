@@ -121,7 +121,7 @@ func TestParams_Decode(t *testing.T) {
 	params := NewParams(32, 32, hasher.BLAKE3_256, hasher.BLAKE3_256)
 
 	// 32 ladders + 2 checksum ladders + public seed, all of 32 bytes
-	sigLen := (32 + 2) * 32 + 32
+	sigLen := (32+2)*32 + 32
 
 	// Get a random signature
 	sig := getRandData(t, sigLen)
@@ -174,7 +174,7 @@ func TestParams_Decode(t *testing.T) {
 	ret, err = params.Decode(ret, msg, sig)
 
 	if ret != nil || err == nil {
-		t.Fatalf("Params.Decode() should have returned (nil, error) when output slice doesn't have enough capacity." +
+		t.Fatalf("Params.Decode() should have returned (nil, error) when output slice doesn't have enough capacity."+
 			" Got %v instead", ret)
 	}
 }
@@ -183,7 +183,7 @@ func TestParams_Verify(t *testing.T) {
 	params := NewParams(32, 32, hasher.BLAKE3_256, hasher.BLAKE3_256)
 
 	// 32 ladders + 2 checksum ladders + public seed, all of 32 bytes
-	sigLen := (32 + 2) * 32 + 32
+	sigLen := (32+2)*32 + 32
 
 	// Get a random signature
 	sig := getRandData(t, sigLen)
