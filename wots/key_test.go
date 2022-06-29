@@ -551,6 +551,8 @@ func TestKey_ComputePKTestVector(t *testing.T) {
 	seed, _ := hex.DecodeString(testVectorSecretSeedHex)
 	pSeed, _ := hex.DecodeString(testVectorPublicSeedHex)
 	key := NewKeyFromSeed(level0Params, seed, pSeed)
+	sk := key.computeSK()
+	t.Logf("%x", sk)
 	pk := key.ComputePK()
 
 	// Validate WOTS PK is correct

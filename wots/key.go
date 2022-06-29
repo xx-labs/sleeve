@@ -106,7 +106,7 @@ func (k *Key) Generate() {
 	// Create memory for all ladders
 	k.chains = make([][]byte, W)
 	for i := range k.chains {
-		k.chains[i] = make([]byte, k.params.n * k.params.total)
+		k.chains[i] = make([]byte, k.params.n*k.params.total)
 	}
 
 	// Compute Secret Keys and place them at the beginning of chains memory
@@ -146,9 +146,9 @@ func (k *Key) fastSign(msg []byte) []byte {
 	data := k.params.msgHashAndComputeChecksum(msg)
 
 	// Get the signature by copying the ladder positions from memory according to message
-	signature := make([]byte, k.params.total * k.params.n)
+	signature := make([]byte, k.params.total*k.params.n)
 	for i := 0; i < k.params.total; i++ {
-		copy(signature[i * k.params.n: (i+1) * k.params.n], k.chains[int(data[i])][i * k.params.n : (i+1) * k.params.n])
+		copy(signature[i*k.params.n:(i+1)*k.params.n], k.chains[int(data[i])][i*k.params.n:(i+1)*k.params.n])
 	}
 
 	// Build signature
@@ -157,7 +157,7 @@ func (k *Key) fastSign(msg []byte) []byte {
 
 func (k *Key) computeSK() []byte {
 	// Create secret keys slice
-	sks := make([]byte, k.params.n * k.params.total)
+	sks := make([]byte, k.params.n*k.params.total)
 	// Get PRF hash
 	hPrf := k.params.prfHash.New()
 	// Hash buffer
@@ -178,7 +178,7 @@ func (k *Key) buildSignature(sig []byte) []byte {
 	// ParamsEncoding, 1 byte
 	// Public Seed,    32 bytes
 	// Ladder points,  Total*n bytes
-	signature := make([]byte, 1 + SeedSize + len(sig))
+	signature := make([]byte, 1+SeedSize+len(sig))
 	signature[0] = byte(encode)
 	copy(signature[1:1+SeedSize], k.pSeed)
 	copy(signature[1+SeedSize:], sig)

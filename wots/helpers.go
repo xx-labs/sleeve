@@ -63,10 +63,10 @@ func computeRands(n int, pSeed []byte, h hash.Hash) [][]byte {
 func parity(value []byte) bool {
 	count := 0
 	for _, n := range value {
-		n^=n>>4
-		n^=n>>2
-		n^=n>>1
-		count += int(n&1)
+		n ^= n >> 4
+		n ^= n >> 2
+		n ^= n >> 1
+		count += int(n & 1)
 	}
-	return count % 2 == 1
+	return count%2 == 1
 }

@@ -14,9 +14,9 @@ import (
 const MsgSize = 256
 
 type testData struct {
-	msg    []byte
-	seed   []byte
-	pSeed  []byte
+	msg   []byte
+	seed  []byte
+	pSeed []byte
 }
 
 var t *testData
